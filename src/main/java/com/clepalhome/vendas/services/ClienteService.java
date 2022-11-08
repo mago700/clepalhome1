@@ -1,9 +1,12 @@
 package com.clepalhome.vendas.services;
 
+import java.awt.image.BufferedImage;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,6 +14,7 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.clepalhome.vendas.domain.Cliente;
 import com.clepalhome.vendas.domain.Morada;
@@ -35,6 +39,18 @@ public class ClienteService {
 	
 	@Autowired
 	private BCryptPasswordEncoder pe;
+	
+	@Autowired
+	private S3Service s3Service;
+	
+	@Autowired
+	private ImageService imageService;
+	
+	@Value("${img.prefix.client.profile}")
+	private String prefix;
+	
+	@Value("${img.profile.size}")
+	private Integer size;
 	
 //===================================== LISTAR =============================================
 	public Cliente find(Integer id) {
@@ -63,7 +79,7 @@ public class ClienteService {
 			
 			Morada end = new Morada(null, objDto.getPais(), objDto.getMorada(), objDto.getComlementoMorada(), 
 					objDto.getCodigoPostal(), objDto.getLocalidade(), cli);
-			
+		
 			cli.getMorada().add(end);
 			
 			cli.getTelefones().add(objDto.getTelefone1());
@@ -107,13 +123,52 @@ public class ClienteService {
 	public List<Cliente> findAll() {
 		return repo.findAll();
 	}
+	
+//================================== FIND BY EMAIL ==========================================
+	public Cliente findByEmail(String email) {
+		UserSS user = UserService.authenticated();
+		if (user == null || !user.hasRole(Perfil.ADMIN) && !email.equals(user.getUsername())) {
+			throw new AuthorizationException("Acesso negado");
+		}
+
+		Cliente obj = repo.findByEmail(email);
+		if (obj == null) {
+			throw new ObjectNotFoundException(
+					"Objeto não encontrado! Id: " + user.getId() + ", Tipo: " + Cliente.class.getName());
+		}
+		return obj;
+	}
 
 //==================================== FIND PAGE ============================================
 	public Page<Cliente> findPage(Integer page, Integer linesPerPage, String orderBy, String direction) {
 		PageRequest pageRequest = PageRequest.of(page, linesPerPage, Direction.valueOf(direction), orderBy);
 		return repo.findAll(pageRequest);
 	}
-
 	
+//============================= UPLOAD DE IMAGEM DO CLIENTE ========================================
+	public URI uploadProfilePicture(MultipartFile multipartFile) {
+		
+		UserSS user = UserService.authenticated();
+		if (user == null) {
+			throw new AuthorizationException("Acesso negado");
+		}
+		
+		BufferedImage jpgImage = imageService.getJpgImageFromFile(multipartFile);
+		jpgImage = imageService.cropSquare(jpgImage);
+		jpgImage = imageService.rezise(jpgImage, size);
+		
+		String fileName = prefix + user.getId() + ".jpg";
+		
+		URI uri = s3Service.uploadFile(imageService.getInputStream(jpgImage, "jpg"), fileName, "image");
+		
+		Cliente cli = find(user.getId());
+		cli.setImageUrl(uri.toString());
+		repo.save(cli);
+		String test = uri.toString();
+		
+		System.out.println("URL DA IMAGEM PARA SALVAR NO BANCO: " + test);
+
+		return s3Service.uploadFile(imageService.getInputStream(jpgImage, "jpg"), fileName, "image");
+	}
 	
 }

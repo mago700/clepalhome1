@@ -10,7 +10,6 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
-
 @Configuration
 public class S3Config {
 	
@@ -29,7 +28,6 @@ public class S3Config {
 		AmazonS3 s3client = AmazonS3ClientBuilder.standard().withRegion(Regions.fromName(region))
 				.withCredentials(new AWSStaticCredentialsProvider(awsCred)).build();
 		return s3client;
-		
 		
 	}
 

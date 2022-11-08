@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -36,6 +37,9 @@ public class Produto implements Serializable{
 	@JsonIgnore
 	@OneToMany(mappedBy = "id.produto")
 	private Set<ItemPedido> itens = new HashSet<>();
+	
+	@OneToMany(mappedBy = "produto", cascade = CascadeType.ALL)
+	private List<ImgProduto> imgProduto = new ArrayList();
 	
 	public Produto() {
 		
@@ -106,7 +110,15 @@ public class Produto implements Serializable{
 	public void setItens(Set<ItemPedido> itens) {
 		this.itens = itens;
 	}
+	
+	public List<ImgProduto> getImgProduto() {
+		return imgProduto;
+	}
 
+	public void setImgProduto(List<ImgProduto> imgProduto) {
+		this.imgProduto = imgProduto;
+	}
+	
 	@Override
 	public int hashCode() {
 		return Objects.hash(id);
@@ -123,6 +135,5 @@ public class Produto implements Serializable{
 		Produto other = (Produto) obj;
 		return Objects.equals(id, other.id);
 	}
-
 
 }
