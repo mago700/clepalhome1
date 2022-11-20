@@ -78,7 +78,7 @@ public class ResourceExceptionHandler {
 	@ExceptionHandler(AmazonClientException.class)
 	public ResponseEntity<StandardError> amazonClient(AmazonClientException e, HttpServletRequest request){
 		
-		StandardError err = new StandardError(System.currentTimeMillis(), HttpStatus.BAD_REQUEST.value(), "Erro Amazon Service", e.getMessage(), request.getRequestURI());
+		StandardError err = new StandardError(System.currentTimeMillis(), HttpStatus.BAD_REQUEST.value(), "Erro Amazon Cliente", e.getMessage(), request.getRequestURI());
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(err);
 	}
 	
